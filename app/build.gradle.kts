@@ -77,6 +77,7 @@ dependencies {
     implementation(libs.workmanager.ktx)
     implementation(libs.hilt.work)
     ksp(libs.hilt.androidx.compiler)
+    implementation(libs.coil.compose)
 
     coreLibraryDesugaring(libs.desugar.jdk.libs)
     testImplementation(libs.junit)
