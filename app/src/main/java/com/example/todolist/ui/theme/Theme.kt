@@ -4,6 +4,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
+
+val LocalPriorityColors = staticCompositionLocalOf { PriorityColors.Standard }
 
 private val DarkColorScheme = darkColorScheme(
     primary = Indigo200,
@@ -29,16 +35,31 @@ private val LightColorScheme = lightColorScheme(
     surface = SurfaceLight,
 )
 
+val fontScaleValues = floatArrayOf(0.85f, 1.0f, 1.15f)
+
 @Composable
 fun ToDoListTheme(
     darkTheme: Boolean,
+    fontScaleIndex: Int = 1,
+    accentScheme: Int = 0,
     content: @Composable () -> Unit
 ) {
     val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
+    val priorityColors = PriorityColors.fromScheme(accentScheme)
+    val fontScale = fontScaleValues.getOrElse(fontScaleIndex) { 1.0f }
+    val currentDensity = LocalDensity.current
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        content = content
-    )
+    CompositionLocalProvider(
+        LocalPriorityColors provides priorityColors,
+        LocalDensity provides Density(
+            density = currentDensity.density,
+            fontScale = fontScale
+        )
+    ) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = Typography,
+            content = content
+        )
+    }
 }

@@ -156,18 +156,6 @@ fun AddEditTaskScreen(
                     }
                 )
 
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Checkbox(
-                        checked = uiState.isDone,
-                        onCheckedChange = viewModel::onIsDoneChanged
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Выполнена")
-                }
-
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Button(

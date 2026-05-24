@@ -15,9 +15,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.todolist.data.model.Task
-import com.example.todolist.ui.theme.PriorityHigh
+import com.example.todolist.ui.theme.LocalPriorityColors
 import com.example.todolist.ui.theme.PriorityLow
-import com.example.todolist.ui.theme.PriorityMedium
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -178,10 +177,11 @@ fun TaskDetailScreen(
 
 @Composable
 private fun TaskInfoCard(task: Task, onMarkDone: () -> Unit) {
+    val priorityColors = LocalPriorityColors.current
     val priorityColor = when (task.priority) {
-        "HIGH" -> PriorityHigh
-        "MEDIUM" -> PriorityMedium
-        else -> PriorityLow
+        "HIGH" -> priorityColors.high
+        "MEDIUM" -> priorityColors.medium
+        else -> priorityColors.low
     }
     val priorityLabel = when (task.priority) {
         "HIGH" -> "Высокий"
@@ -220,13 +220,39 @@ private fun TaskInfoCard(task: Task, onMarkDone: () -> Unit) {
                 Text("Дедлайн: $formatted", style = MaterialTheme.typography.bodyMedium)
             }
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Checkbox(checked = task.isDone, onCheckedChange = { if (!task.isDone) onMarkDone() })
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(if (task.isDone) "Выполнена" else "Отметить выполненной")
+            if (task.isDone) {
+                Surface(
+                    color = PriorityLow.copy(alpha = 0.15f),
+                    shape = MaterialTheme.shapes.small,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            tint = PriorityLow,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Задача выполнена",
+                            color = PriorityLow,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+            } else {
+                Button(
+                    onClick = onMarkDone,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Отметить выполненной")
+                }
             }
         }
     }

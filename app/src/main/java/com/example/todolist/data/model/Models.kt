@@ -27,3 +27,5 @@ data class LoginRequest(val login: String, val password: String)
 data class RegisterRequest(val login: String, val password: String)
 
 data class RelationRequest(val relatedTaskId: Int)
+
+data class ChangePasswordRequest(val currentPassword: String, val newPassword: String)

@@ -74,6 +74,9 @@ dependencies {
 
     implementation(libs.security.crypto)
     implementation(libs.datastore.preferences)
+    implementation(libs.workmanager.ktx)
+    implementation(libs.hilt.work)
+    ksp(libs.hilt.androidx.compiler)
 
     coreLibraryDesugaring(libs.desugar.jdk.libs)
     testImplementation(libs.junit)

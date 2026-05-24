@@ -1,6 +1,7 @@
 package com.example.todolist.data.repository
 
 import com.example.todolist.data.api.ApiService
+import com.example.todolist.data.model.ChangePasswordRequest
 import com.example.todolist.data.model.LoginRequest
 import com.example.todolist.data.model.RegisterRequest
 import javax.inject.Inject
@@ -38,6 +39,20 @@ class AuthRepository @Inject constructor(
                 Result.success(token)
             } else {
                 val errorMsg = response.errorBody()?.string() ?: "Ошибка регистрации"
+                Result.failure(Exception(parseError(errorMsg)))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception("Нет соединения с сервером"))
+        }
+    }
+
+    suspend fun changePassword(currentPassword: String, newPassword: String): Result<Unit> {
+        return try {
+            val response = api.changePassword(ChangePasswordRequest(currentPassword, newPassword))
+            if (response.isSuccessful) {
+                Result.success(Unit)
+            } else {
+                val errorMsg = response.errorBody()?.string() ?: "Ошибка смены пароля"
                 Result.failure(Exception(parseError(errorMsg)))
             }
         } catch (e: Exception) {

@@ -5,8 +5,6 @@ import androidx.lifecycle.viewModelScope
 import com.example.todolist.data.model.Task
 import com.example.todolist.data.repository.SearchHistoryRepository
 import com.example.todolist.data.repository.TaskRepository
-import com.example.todolist.data.repository.ThemeRepository
-import com.example.todolist.data.repository.TokenRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.*
@@ -16,6 +14,7 @@ import javax.inject.Inject
 data class TaskListUiState(
     val tasks: List<Task> = emptyList(),
     val isLoading: Boolean = false,
+    val isRefreshing: Boolean = false,
     val isSearchLoading: Boolean = false,
     val error: String? = null,
     val searchQuery: String = "",
@@ -26,16 +25,11 @@ data class TaskListUiState(
 @HiltViewModel
 class TaskListViewModel @Inject constructor(
     private val taskRepository: TaskRepository,
-    private val tokenRepository: TokenRepository,
-    private val themeRepository: ThemeRepository,
     private val searchHistoryRepository: SearchHistoryRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TaskListUiState())
     val uiState: StateFlow<TaskListUiState> = _uiState.asStateFlow()
-
-    val isDarkTheme: StateFlow<Boolean> = themeRepository.isDarkTheme
-        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
     private val searchQueryFlow = MutableStateFlow("")
 
@@ -71,9 +65,38 @@ class TaskListViewModel @Inject constructor(
             val query = _uiState.value.searchQuery.takeIf { it.isNotBlank() }
             val result = taskRepository.getTasks(query)
             result.fold(
-                onSuccess = { tasks -> _uiState.update { it.copy(tasks = tasks, isLoading = false) } },
-                onFailure = { e -> _uiState.update { it.copy(error = e.message, isLoading = false) } }
+                onSuccess = { tasks ->
+                    _uiState.update { it.copy(tasks = tasks.filter { t -> !t.isDone }, isLoading = false) }
+                },
+                onFailure = { e ->
+                    _uiState.update { it.copy(error = e.message, isLoading = false) }
+                }
             )
+        }
+    }
+
+    fun refresh() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isRefreshing = true, error = null) }
+            val query = _uiState.value.searchQuery.takeIf { it.isNotBlank() }
+            val result = taskRepository.getTasks(query)
+            result.fold(
+                onSuccess = { tasks ->
+                    _uiState.update { it.copy(tasks = tasks.filter { t -> !t.isDone }, isRefreshing = false) }
+                },
+                onFailure = { e ->
+                    _uiState.update { it.copy(error = e.message, isRefreshing = false) }
+                }
+            )
+        }
+    }
+
+    fun markTaskDone(taskId: Int) {
+        viewModelScope.launch {
+            val result = taskRepository.markDone(taskId)
+            if (result.isSuccess) {
+                _uiState.update { it.copy(tasks = it.tasks.filter { t -> t.id != taskId }) }
+            }
         }
     }
 
@@ -82,8 +105,14 @@ class TaskListViewModel @Inject constructor(
             _uiState.update { it.copy(isSearchLoading = true, error = null) }
             val result = taskRepository.getTasks(query.takeIf { it.isNotBlank() })
             result.fold(
-                onSuccess = { tasks -> _uiState.update { it.copy(tasks = tasks, isSearchLoading = false) } },
-                onFailure = { e -> _uiState.update { it.copy(error = e.message, isSearchLoading = false) } }
+                onSuccess = { tasks ->
+                    _uiState.update {
+                        it.copy(tasks = tasks.filter { t -> !t.isDone }, isSearchLoading = false)
+                    }
+                },
+                onFailure = { e ->
+                    _uiState.update { it.copy(error = e.message, isSearchLoading = false) }
+                }
             )
         }
     }
@@ -112,15 +141,5 @@ class TaskListViewModel @Inject constructor(
 
     fun clearHistory() {
         viewModelScope.launch { searchHistoryRepository.clearHistory() }
-    }
-
-    fun toggleTheme() {
-        viewModelScope.launch {
-            themeRepository.setDarkTheme(!isDarkTheme.value)
-        }
-    }
-
-    fun logout() {
-        tokenRepository.clearToken()
     }
 }

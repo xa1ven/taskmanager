@@ -1,5 +1,6 @@
 package com.example.todolist.ui.tasks
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -7,10 +8,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -20,57 +23,37 @@ import com.example.todolist.data.model.Task
 import com.example.todolist.ui.common.EmptyTasksPlaceholder
 import com.example.todolist.ui.common.ErrorPlaceholder
 import com.example.todolist.ui.common.NoSearchResultsPlaceholder
-import com.example.todolist.ui.theme.PriorityHigh
-import com.example.todolist.ui.theme.PriorityLow
-import com.example.todolist.ui.theme.PriorityMedium
+import com.example.todolist.ui.theme.LocalPriorityColors
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TaskListScreen(
-    isDarkTheme: Boolean,
-    onThemeToggle: () -> Unit,
-    onLogout: () -> Unit,
+    onOpenDrawer: () -> Unit,
     onAddTask: () -> Unit,
     onTaskClick: (Int) -> Unit,
+    shouldRefresh: Boolean = false,
+    onRefreshHandled: () -> Unit = {},
     viewModel: TaskListViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val focusManager = LocalFocusManager.current
-    var showLogoutDialog by remember { mutableStateOf(false) }
 
-    if (showLogoutDialog) {
-        AlertDialog(
-            onDismissRequest = { showLogoutDialog = false },
-            title = { Text("Выйти из аккаунта?") },
-            text = { Text("Вы будете перенаправлены на экран входа.") },
-            confirmButton = {
-                TextButton(onClick = {
-                    showLogoutDialog = false
-                    viewModel.logout()
-                    onLogout()
-                }) { Text("Выйти") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showLogoutDialog = false }) { Text("Отмена") }
-            }
-        )
+    LaunchedEffect(shouldRefresh) {
+        if (shouldRefresh) {
+            viewModel.loadTasks()
+            onRefreshHandled()
+        }
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Мои задачи") },
-                actions = {
-                    IconButton(onClick = onThemeToggle) {
-                        Icon(
-                            imageVector = if (isDarkTheme) Icons.Default.LightMode else Icons.Default.DarkMode,
-                            contentDescription = "Переключить тему"
-                        )
-                    }
-                    IconButton(onClick = { showLogoutDialog = true }) {
-                        Icon(Icons.Default.Logout, contentDescription = "Выйти")
+                navigationIcon = {
+                    IconButton(onClick = onOpenDrawer) {
+                        Icon(Icons.Default.Menu, contentDescription = "Меню")
                     }
                 }
             )
@@ -118,35 +101,97 @@ fun TaskListScreen(
                     onClearHistory = viewModel::clearHistory
                 )
             } else {
-                when {
-                    uiState.isLoading -> {
-                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator()
+                PullToRefreshBox(
+                    isRefreshing = uiState.isRefreshing,
+                    onRefresh = viewModel::refresh,
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    when {
+                        uiState.isLoading -> {
+                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                CircularProgressIndicator()
+                            }
                         }
-                    }
-                    uiState.error != null -> {
-                        ErrorPlaceholder(onRetry = viewModel::loadTasks)
-                    }
-                    uiState.tasks.isEmpty() && uiState.searchQuery.isBlank() -> {
-                        EmptyTasksPlaceholder()
-                    }
-                    uiState.tasks.isEmpty() -> {
-                        NoSearchResultsPlaceholder(uiState.searchQuery)
-                    }
-                    else -> {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            items(uiState.tasks, key = { it.id }) { task ->
-                                TaskCard(task = task, onClick = { onTaskClick(task.id) })
+                        uiState.error != null -> {
+                            ErrorPlaceholder(onRetry = viewModel::loadTasks)
+                        }
+                        uiState.tasks.isEmpty() && uiState.searchQuery.isBlank() -> {
+                            EmptyTasksPlaceholder()
+                        }
+                        uiState.tasks.isEmpty() -> {
+                            NoSearchResultsPlaceholder(uiState.searchQuery)
+                        }
+                        else -> {
+                            LazyColumn(
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                items(uiState.tasks, key = { it.id }) { task ->
+                                    SwipeToMarkDone(
+                                        onMarkDone = { viewModel.markTaskDone(task.id) }
+                                    ) {
+                                        TaskCard(task = task, onClick = { onTaskClick(task.id) })
+                                    }
+                                }
                             }
                         }
                     }
                 }
             }
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SwipeToMarkDone(
+    onMarkDone: () -> Unit,
+    content: @Composable () -> Unit
+) {
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { value ->
+            if (value == SwipeToDismissBoxValue.EndToStart) {
+                onMarkDone()
+                true
+            } else false
+        }
+    )
+
+    SwipeToDismissBox(
+        state = dismissState,
+        enableDismissFromStartToEnd = false,
+        backgroundContent = {
+            val color by animateColorAsState(
+                targetValue = if (dismissState.targetValue == SwipeToDismissBoxValue.EndToStart)
+                    MaterialTheme.colorScheme.primaryContainer
+                else Color.Transparent,
+                label = "swipe_bg"
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(vertical = 0.dp),
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                Surface(
+                    color = color,
+                    modifier = Modifier.fillMaxSize(),
+                    shape = MaterialTheme.shapes.medium
+                ) {
+                    Box(contentAlignment = Alignment.CenterEnd) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = "Выполнить",
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.padding(end = 24.dp)
+                        )
+                    }
+                }
+            }
+        }
+    ) {
+        content()
     }
 }
 
@@ -205,10 +250,11 @@ private fun SearchHistoryList(
 
 @Composable
 fun TaskCard(task: Task, onClick: () -> Unit) {
+    val priorityColors = LocalPriorityColors.current
     val priorityColor = when (task.priority) {
-        "HIGH" -> PriorityHigh
-        "MEDIUM" -> PriorityMedium
-        else -> PriorityLow
+        "HIGH" -> priorityColors.high
+        "MEDIUM" -> priorityColors.medium
+        else -> priorityColors.low
     }
 
     Card(
@@ -222,7 +268,6 @@ fun TaskCard(task: Task, onClick: () -> Unit) {
                 modifier = Modifier
                     .width(4.dp)
                     .height(56.dp)
-                    .padding(end = 0.dp)
             ) {
                 Surface(color = priorityColor, modifier = Modifier.fillMaxSize()) {}
             }
@@ -252,32 +297,14 @@ fun TaskCard(task: Task, onClick: () -> Unit) {
                         )
                     }
                 }
-                Row(
-                    modifier = Modifier.padding(top = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    task.deadline?.let { deadline ->
-                        val formatted = formatDeadline(deadline)
-                        Text(
-                            text = formatted,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                    }
-                    if (task.isDone) {
-                        Surface(
-                            color = PriorityLow.copy(alpha = 0.2f),
-                            shape = MaterialTheme.shapes.small
-                        ) {
-                            Text(
-                                text = "Выполнена",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = PriorityLow,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                            )
-                        }
-                    }
+                task.deadline?.let { deadline ->
+                    val formatted = formatDeadline(deadline)
+                    Text(
+                        text = formatted,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
                 }
             }
         }

@@ -32,4 +32,7 @@ interface ApiService {
 
     @DELETE("tasks/{id}/relations/{relatedId}")
     suspend fun removeRelation(@Path("id") id: Int, @Path("relatedId") relatedId: Int): Response<Unit>
+
+    @PATCH("auth/password")
+    suspend fun changePassword(@Body request: ChangePasswordRequest): Response<Unit>
 }
