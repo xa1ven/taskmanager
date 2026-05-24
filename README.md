@@ -52,8 +52,7 @@ taskmanager/
 ## 🏗 Архитектура
 
 ```
-Android (MVVM)  ──HTTP/REST──▶  Ktor Server  ──Exposed ORM──▶  PostgreSQL
-                   + JWT
+Android (MVVM)  ──HTTP/REST──▶  Ktor Server  ──Exposed ORM──▶  PostgreSQL + JWT
 ```
 
 **Клиент:** `MVVM` + `Hilt` + `Retrofit` + `Coroutines` + `DataStore`
