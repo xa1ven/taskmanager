@@ -1,5 +1,7 @@
 package com.example.todolist.ui.tasks
 
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -84,7 +86,12 @@ fun AddEditTaskScreen(
             )
         }
     ) { paddingValues ->
-        if (uiState.isLoadingTask) {
+        Crossfade(
+            targetState = uiState.isLoadingTask,
+            animationSpec = tween(300),
+            label = "edit_loading"
+        ) { isLoading ->
+        if (isLoading) {
             Box(
                 modifier = Modifier.fillMaxSize().padding(paddingValues),
                 contentAlignment = Alignment.Center
@@ -174,6 +181,7 @@ fun AddEditTaskScreen(
                     }
                 }
             }
+        }
         }
     }
 }

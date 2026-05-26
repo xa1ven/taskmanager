@@ -1,5 +1,9 @@
 package com.example.todolist.ui.tasks
 
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -144,38 +148,63 @@ fun TaskDetailScreen(
             )
         }
     ) { paddingValues ->
-        if (uiState.isLoading && uiState.task == null) {
-            Box(
-                modifier = Modifier.fillMaxSize().padding(paddingValues),
-                contentAlignment = Alignment.Center
-            ) { CircularProgressIndicator() }
-        } else {
-            val task = uiState.task
-            if (task == null) {
+        Crossfade(
+            targetState = uiState.isLoading && uiState.task == null,
+            animationSpec = tween(300),
+            label = "detail_loading"
+        ) { isLoading ->
+            if (isLoading) {
                 Box(
                     modifier = Modifier.fillMaxSize().padding(paddingValues),
                     contentAlignment = Alignment.Center
-                ) { Text("Задача не найдена") }
+                ) { CircularProgressIndicator() }
             } else {
-                Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
-                    if (uiState.isUpdating) {
-                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                    }
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        item {
-                            TaskInfoCard(task = task, onMarkDone = { viewModel.markDone() })
+                val task = uiState.task
+                if (task == null) {
+                    Box(
+                        modifier = Modifier.fillMaxSize().padding(paddingValues),
+                        contentAlignment = Alignment.Center
+                    ) { Text("Задача не найдена") }
+                } else {
+                    var itemsVisible by remember { mutableStateOf(false) }
+                    LaunchedEffect(Unit) { itemsVisible = true }
+
+                    val alpha1 by animateFloatAsState(
+                        targetValue = if (itemsVisible) 1f else 0f,
+                        animationSpec = tween(350),
+                        label = "card1_alpha"
+                    )
+                    val alpha2 by animateFloatAsState(
+                        targetValue = if (itemsVisible) 1f else 0f,
+                        animationSpec = tween(350, delayMillis = 100),
+                        label = "card2_alpha"
+                    )
+
+                    Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+                        if (uiState.isUpdating) {
+                            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                         }
-                        item {
-                            RelatedTasksSection(
-                                relatedTasks = task.relatedTasks ?: emptyList(),
-                                onTaskClick = onRelatedTaskClick,
-                                onRemoveRelation = { viewModel.removeRelation(it) },
-                                onAddRelation = { showAddRelationSheet = true }
-                            )
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            item {
+                                TaskInfoCard(
+                                    task = task,
+                                    onMarkDone = { viewModel.markDone() },
+                                    modifier = Modifier.graphicsLayer { alpha = alpha1 }
+                                )
+                            }
+                            item {
+                                RelatedTasksSection(
+                                    relatedTasks = task.relatedTasks ?: emptyList(),
+                                    onTaskClick = onRelatedTaskClick,
+                                    onRemoveRelation = { viewModel.removeRelation(it) },
+                                    onAddRelation = { showAddRelationSheet = true },
+                                    modifier = Modifier.graphicsLayer { alpha = alpha2 }
+                                )
+                            }
                         }
                     }
                 }
@@ -185,7 +214,7 @@ fun TaskDetailScreen(
 }
 
 @Composable
-private fun TaskInfoCard(task: Task, onMarkDone: () -> Unit) {
+private fun TaskInfoCard(task: Task, onMarkDone: () -> Unit, modifier: Modifier = Modifier) {
     val priorityColors = LocalPriorityColors.current
     val priorityColor = when (task.priority) {
         "HIGH" -> priorityColors.high
@@ -198,7 +227,7 @@ private fun TaskInfoCard(task: Task, onMarkDone: () -> Unit) {
         else -> "Низкий"
     }
 
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(modifier = modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(task.title, style = MaterialTheme.typography.headlineSmall)
 
@@ -272,9 +301,10 @@ private fun RelatedTasksSection(
     relatedTasks: List<RelatedTaskResponse>,
     onTaskClick: (Int) -> Unit,
     onRemoveRelation: (Int) -> Unit,
-    onAddRelation: () -> Unit
+    onAddRelation: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(modifier = modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),

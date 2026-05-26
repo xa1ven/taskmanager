@@ -2,6 +2,7 @@ package com.example.todolist
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.graphics.drawable.ColorDrawable
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -20,6 +21,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.rememberNavController
 import com.example.todolist.data.repository.SettingsRepository
+import com.example.todolist.data.repository.ThemeRepository
 import com.example.todolist.data.repository.TokenRepository
 import com.example.todolist.ui.navigation.AppNavGraph
 import com.example.todolist.ui.navigation.Screen
@@ -29,6 +31,7 @@ import com.example.todolist.ui.theme.ToDoListTheme
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -40,6 +43,9 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var settingsRepository: SettingsRepository
 
+    @Inject
+    lateinit var themeRepository: ThemeRepository
+
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
@@ -50,6 +56,12 @@ class MainActivity : ComponentActivity() {
         val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        // Читаем тему синхронно до первой композиции — без этого первый фрейм всегда светлый
+        val initialDarkTheme = runBlocking { themeRepository.isDarkTheme.first() }
+        window.setBackgroundDrawable(
+            ColorDrawable(if (initialDarkTheme) 0xFF121318.toInt() else 0xFFF8F9FF.toInt())
+        )
 
         requestNotificationPermissionIfNeeded()
 
@@ -63,9 +75,11 @@ class MainActivity : ComponentActivity() {
             val navController = rememberNavController()
             val settingsViewModel: SettingsViewModel = hiltViewModel()
             val uiState by settingsViewModel.uiState.collectAsStateWithLifecycle()
+            val isDarkTheme by themeRepository.isDarkTheme
+                .collectAsStateWithLifecycle(initialValue = initialDarkTheme)
 
             ToDoListTheme(
-                darkTheme = uiState.isDarkTheme,
+                darkTheme = isDarkTheme,
                 fontScaleIndex = uiState.fontScaleIndex,
                 accentScheme = uiState.accentScheme
             ) {

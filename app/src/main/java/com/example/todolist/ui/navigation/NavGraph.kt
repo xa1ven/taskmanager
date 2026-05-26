@@ -1,8 +1,14 @@
 package com.example.todolist.ui.navigation
 
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.rememberDrawerState
@@ -79,10 +85,10 @@ fun AppNavGraph(
         NavHost(
             navController = navController,
             startDestination = startDestination,
-            enterTransition = { fadeIn(animationSpec = tween(200)) },
-            exitTransition = { fadeOut(animationSpec = tween(200)) },
-            popEnterTransition = { fadeIn(animationSpec = tween(200)) },
-            popExitTransition = { fadeOut(animationSpec = tween(200)) }
+            enterTransition = { fadeIn(animationSpec = tween(300, easing = LinearOutSlowInEasing)) },
+            exitTransition = { fadeOut(animationSpec = tween(200, easing = FastOutLinearInEasing)) },
+            popEnterTransition = { fadeIn(animationSpec = tween(300, easing = LinearOutSlowInEasing)) },
+            popExitTransition = { fadeOut(animationSpec = tween(200, easing = FastOutLinearInEasing)) }
         ) {
             composable(Screen.Login.route) {
                 LoginScreen(
@@ -149,7 +155,27 @@ fun AppNavGraph(
                 AboutScreen(onOpenDrawer = openDrawer)
             }
 
-            composable(Screen.AddTask.route) {
+            composable(
+                route = Screen.AddTask.route,
+                enterTransition = {
+                    slideInVertically(
+                        initialOffsetY = { it },
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioNoBouncy,
+                            stiffness = Spring.StiffnessMediumLow
+                        )
+                    ) + fadeIn(animationSpec = tween(220))
+                },
+                popExitTransition = {
+                    slideOutVertically(
+                        targetOffsetY = { it },
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioNoBouncy,
+                            stiffness = Spring.StiffnessMedium
+                        )
+                    ) + fadeOut(animationSpec = tween(180))
+                }
+            ) {
                 AddEditTaskScreen(
                     taskId = null,
                     onSaved = {
@@ -162,7 +188,25 @@ fun AppNavGraph(
 
             composable(
                 route = Screen.EditTask.route,
-                arguments = listOf(navArgument("taskId") { type = NavType.IntType })
+                arguments = listOf(navArgument("taskId") { type = NavType.IntType }),
+                enterTransition = {
+                    slideInVertically(
+                        initialOffsetY = { it },
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioNoBouncy,
+                            stiffness = Spring.StiffnessMediumLow
+                        )
+                    ) + fadeIn(animationSpec = tween(220))
+                },
+                popExitTransition = {
+                    slideOutVertically(
+                        targetOffsetY = { it },
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioNoBouncy,
+                            stiffness = Spring.StiffnessMedium
+                        )
+                    ) + fadeOut(animationSpec = tween(180))
+                }
             ) { backStackEntry ->
                 val taskId = backStackEntry.arguments?.getInt("taskId")
                 AddEditTaskScreen(
@@ -177,7 +221,25 @@ fun AppNavGraph(
 
             composable(
                 route = Screen.TaskDetail.route,
-                arguments = listOf(navArgument("taskId") { type = NavType.IntType })
+                arguments = listOf(navArgument("taskId") { type = NavType.IntType }),
+                enterTransition = {
+                    slideInVertically(
+                        initialOffsetY = { it },
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioNoBouncy,
+                            stiffness = Spring.StiffnessMediumLow
+                        )
+                    ) + fadeIn(animationSpec = tween(220))
+                },
+                popExitTransition = {
+                    slideOutVertically(
+                        targetOffsetY = { it },
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioNoBouncy,
+                            stiffness = Spring.StiffnessMedium
+                        )
+                    ) + fadeOut(animationSpec = tween(180))
+                }
             ) { backStackEntry ->
                 val taskId = backStackEntry.arguments?.getInt("taskId") ?: return@composable
                 TaskDetailScreen(

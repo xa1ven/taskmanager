@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -157,7 +158,12 @@ fun TaskListScreen(
                             ) {
                                 items(uiState.tasks, key = { it.id }) { task ->
                                     SwipeToMarkDone(
-                                        onMarkDone = { viewModel.markTaskDone(task.id) }
+                                        onMarkDone = { viewModel.markTaskDone(task.id) },
+                                        modifier = Modifier.animateItem(
+                                            fadeInSpec = tween(300),
+                                            fadeOutSpec = tween(250),
+                                            placementSpec = tween(350)
+                                        )
                                     ) {
                                         TaskCard(task = task, onClick = { onTaskClick(task.id) })
                                     }
@@ -289,6 +295,7 @@ fun RelationDots(relatedTasks: List<RelatedTaskResponse>) {
 @Composable
 private fun SwipeToMarkDone(
     onMarkDone: () -> Unit,
+    modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
     val dismissState = rememberSwipeToDismissBoxState(
@@ -302,6 +309,7 @@ private fun SwipeToMarkDone(
 
     SwipeToDismissBox(
         state = dismissState,
+        modifier = modifier,
         enableDismissFromStartToEnd = false,
         backgroundContent = {
             val color by animateColorAsState(
