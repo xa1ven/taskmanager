@@ -16,6 +16,7 @@ data class TaskDetailUiState(
     val task: Task? = null,
     val allTasks: List<Task> = emptyList(),
     val isLoading: Boolean = false,
+    val isUpdating: Boolean = false,
     val isDeleted: Boolean = false,
     val error: String? = null,
     val actionMessage: String? = null
@@ -35,17 +36,28 @@ class TaskDetailViewModel @Inject constructor(
         currentTaskId = taskId
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
-            val result = taskRepository.getTasks()
-            result.fold(
-                onSuccess = { tasks ->
-                    val task = tasks.find { it.id == taskId }
-                    _uiState.update { it.copy(task = task, allTasks = tasks, isLoading = false) }
-                },
-                onFailure = { e ->
-                    _uiState.update { it.copy(error = e.message, isLoading = false) }
-                }
-            )
+            fetchTask()
         }
+    }
+
+    private fun refreshTask() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isUpdating = true) }
+            fetchTask()
+        }
+    }
+
+    private suspend fun fetchTask() {
+        val result = taskRepository.getTasks()
+        result.fold(
+            onSuccess = { tasks ->
+                val task = tasks.find { it.id == currentTaskId }
+                _uiState.update { it.copy(task = task, allTasks = tasks, isLoading = false, isUpdating = false) }
+            },
+            onFailure = { e ->
+                _uiState.update { it.copy(error = e.message, isLoading = false, isUpdating = false) }
+            }
+        )
     }
 
     fun deleteTask() {
@@ -75,7 +87,7 @@ class TaskDetailViewModel @Inject constructor(
         viewModelScope.launch {
             val result = taskRepository.addRelation(currentTaskId, relatedId)
             result.fold(
-                onSuccess = { loadTask(currentTaskId) },
+                onSuccess = { refreshTask() },
                 onFailure = { e -> _uiState.update { it.copy(error = e.message) } }
             )
         }
@@ -85,7 +97,7 @@ class TaskDetailViewModel @Inject constructor(
         viewModelScope.launch {
             val result = taskRepository.removeRelation(currentTaskId, relatedId)
             result.fold(
-                onSuccess = { loadTask(currentTaskId) },
+                onSuccess = { refreshTask() },
                 onFailure = { e -> _uiState.update { it.copy(error = e.message) } }
             )
         }

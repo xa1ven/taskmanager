@@ -144,7 +144,7 @@ fun TaskDetailScreen(
             )
         }
     ) { paddingValues ->
-        if (uiState.isLoading) {
+        if (uiState.isLoading && uiState.task == null) {
             Box(
                 modifier = Modifier.fillMaxSize().padding(paddingValues),
                 contentAlignment = Alignment.Center
@@ -157,21 +157,26 @@ fun TaskDetailScreen(
                     contentAlignment = Alignment.Center
                 ) { Text("Задача не найдена") }
             } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize().padding(paddingValues),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    item {
-                        TaskInfoCard(task = task, onMarkDone = { viewModel.markDone() })
+                Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+                    if (uiState.isUpdating) {
+                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                     }
-                    item {
-                        RelatedTasksSection(
-                            relatedTasks = task.relatedTasks ?: emptyList(),
-                            onTaskClick = onRelatedTaskClick,
-                            onRemoveRelation = { viewModel.removeRelation(it) },
-                            onAddRelation = { showAddRelationSheet = true }
-                        )
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        item {
+                            TaskInfoCard(task = task, onMarkDone = { viewModel.markDone() })
+                        }
+                        item {
+                            RelatedTasksSection(
+                                relatedTasks = task.relatedTasks ?: emptyList(),
+                                onTaskClick = onRelatedTaskClick,
+                                onRemoveRelation = { viewModel.removeRelation(it) },
+                                onAddRelation = { showAddRelationSheet = true }
+                            )
+                        }
                     }
                 }
             }
