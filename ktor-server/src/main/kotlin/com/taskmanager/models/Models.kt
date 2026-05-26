@@ -28,6 +28,7 @@ object Tasks : Table("tasks") {
 object TaskRelations : Table("task_relations") {
     val taskId = integer("task_id").references(Tasks.id)
     val relatedTaskId = integer("related_task_id").references(Tasks.id)
+    val groupColor = varchar("group_color", 10)
     override val primaryKey = PrimaryKey(taskId, relatedTaskId)
 }
 
@@ -66,7 +67,14 @@ data class TaskResponse(
 data class RelatedTaskResponse(
     val id: Int,
     val title: String,
-    val isDone: Boolean
+    val isDone: Boolean,
+    val groupColor: String
+)
+
+@Serializable
+data class ChangePasswordRequest(
+    val currentPassword: String,
+    val newPassword: String
 )
 
 @Serializable
@@ -74,3 +82,7 @@ data class RelationRequest(val relatedTaskId: Int)
 
 @Serializable
 data class ErrorResponse(val error: String)
+
+val RELATION_COLOR_PALETTE = listOf(
+    "BLUE", "PINK", "PURPLE", "TEAL", "AMBER", "LIME", "CYAN", "ROSE"
+)

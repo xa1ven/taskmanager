@@ -1,9 +1,8 @@
 package com.example.todolist.ui.navigation
 
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.rememberDrawerState
@@ -80,10 +79,10 @@ fun AppNavGraph(
         NavHost(
             navController = navController,
             startDestination = startDestination,
-            enterTransition = { slideInHorizontally(initialOffsetX = { it }) + fadeIn() },
-            exitTransition = { slideOutHorizontally(targetOffsetX = { -it }) + fadeOut() },
-            popEnterTransition = { slideInHorizontally(initialOffsetX = { -it }) + fadeIn() },
-            popExitTransition = { slideOutHorizontally(targetOffsetX = { it }) + fadeOut() }
+            enterTransition = { fadeIn(animationSpec = tween(200)) },
+            exitTransition = { fadeOut(animationSpec = tween(200)) },
+            popEnterTransition = { fadeIn(animationSpec = tween(200)) },
+            popExitTransition = { fadeOut(animationSpec = tween(200)) }
         ) {
             composable(Screen.Login.route) {
                 LoginScreen(

@@ -1,10 +1,5 @@
-FROM gradle:8.5-jdk17 AS build
+FROM eclipse-temurin:21-jre-jammy
 WORKDIR /app
-COPY . .
-RUN gradle shadowJar --no-daemon
-
-FROM openjdk:17-jre-slim
-WORKDIR /app
-COPY --from=build /app/build/libs/*-all.jar app.jar
+COPY build/libs/ktor-server-all.jar app.jar
 EXPOSE 8000
 ENTRYPOINT ["java", "-jar", "app.jar"]

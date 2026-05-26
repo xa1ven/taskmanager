@@ -1,10 +1,12 @@
 package com.example.todolist.ui.tasks
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -19,11 +21,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.todolist.data.model.RelatedTaskResponse
 import com.example.todolist.data.model.Task
 import com.example.todolist.ui.common.EmptyTasksPlaceholder
 import com.example.todolist.ui.common.ErrorPlaceholder
 import com.example.todolist.ui.common.NoSearchResultsPlaceholder
 import com.example.todolist.ui.theme.LocalPriorityColors
+import com.example.todolist.ui.theme.RelationColors
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -39,12 +43,22 @@ fun TaskListScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val focusManager = LocalFocusManager.current
+    var showSortSheet by remember { mutableStateOf(false) }
+    val isFiltersActive = uiState.sortFilterState != SortFilterState()
 
     LaunchedEffect(shouldRefresh) {
         if (shouldRefresh) {
             viewModel.loadTasks()
             onRefreshHandled()
         }
+    }
+
+    if (showSortSheet) {
+        SortFilterSheet(
+            currentState = uiState.sortFilterState,
+            onApply = viewModel::applySortFilter,
+            onDismiss = { showSortSheet = false }
+        )
     }
 
     Scaffold(
@@ -55,11 +69,25 @@ fun TaskListScreen(
                     IconButton(onClick = onOpenDrawer) {
                         Icon(Icons.Default.Menu, contentDescription = "Меню")
                     }
+                },
+                actions = {
+                    IconButton(onClick = { showSortSheet = true }) {
+                        Icon(
+                            Icons.Default.FilterList,
+                            contentDescription = "Сортировка и фильтры",
+                            tint = if (isFiltersActive) MaterialTheme.colorScheme.primary
+                                   else LocalContentColor.current
+                        )
+                    }
                 }
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = onAddTask) {
+            FloatingActionButton(
+                onClick = onAddTask,
+                shape = CircleShape,
+                containerColor = MaterialTheme.colorScheme.primary
+            ) {
                 Icon(Icons.Default.Add, contentDescription = "Добавить задачу")
             }
         }
@@ -139,6 +167,120 @@ fun TaskListScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SortFilterSheet(
+    currentState: SortFilterState,
+    onApply: (SortFilterState) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var sortOption by remember { mutableStateOf(currentState.sortOption) }
+    var onlyToday by remember { mutableStateOf(currentState.onlyToday) }
+    var onlyUrgent by remember { mutableStateOf(currentState.onlyUrgent) }
+
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+            Text("Сортировка", style = MaterialTheme.typography.titleMedium)
+            Spacer(modifier = Modifier.height(8.dp))
+
+            SortRadioOption("По дате создания (новые сверху)", sortOption == SortOption.DATE_DESC) {
+                sortOption = SortOption.DATE_DESC
+            }
+            SortRadioOption("По дате создания (старые сверху)", sortOption == SortOption.DATE_ASC) {
+                sortOption = SortOption.DATE_ASC
+            }
+            SortRadioOption("По приоритету (высокий сверху)", sortOption == SortOption.PRIORITY_DESC) {
+                sortOption = SortOption.PRIORITY_DESC
+            }
+            SortRadioOption("По приоритету (низкий сверху)", sortOption == SortOption.PRIORITY_ASC) {
+                sortOption = SortOption.PRIORITY_ASC
+            }
+            SortRadioOption("По дедлайну (ближайшие сверху)", sortOption == SortOption.DEADLINE_ASC) {
+                sortOption = SortOption.DEADLINE_ASC
+            }
+            SortRadioOption("По дедлайну (дальние сверху)", sortOption == SortOption.DEADLINE_DESC) {
+                sortOption = SortOption.DEADLINE_DESC
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+            Text("Фильтры", style = MaterialTheme.typography.titleMedium)
+            Spacer(modifier = Modifier.height(8.dp))
+
+            SortCheckboxOption("Только задачи на сегодня", onlyToday) { onlyToday = it }
+            SortCheckboxOption("Только срочные (приоритет Высокий)", onlyUrgent) { onlyUrgent = it }
+
+            Spacer(modifier = Modifier.height(16.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                TextButton(onClick = {
+                    onApply(SortFilterState())
+                    onDismiss()
+                }) {
+                    Text("Сбросить")
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Button(onClick = {
+                    onApply(SortFilterState(sortOption, onlyToday, onlyUrgent))
+                    onDismiss()
+                }) {
+                    Text("Применить")
+                }
+            }
+            Spacer(modifier = Modifier.height(32.dp))
+        }
+    }
+}
+
+@Composable
+private fun SortRadioOption(text: String, selected: Boolean, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        RadioButton(selected = selected, onClick = onClick)
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(text, style = MaterialTheme.typography.bodyMedium)
+    }
+}
+
+@Composable
+private fun SortCheckboxOption(text: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onCheckedChange(!checked) }
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Checkbox(checked = checked, onCheckedChange = onCheckedChange)
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(text, style = MaterialTheme.typography.bodyMedium)
+    }
+}
+
+@Composable
+fun RelationDots(relatedTasks: List<RelatedTaskResponse>) {
+    val colors = relatedTasks
+        .mapNotNull { RelationColors.colorMap[it.groupColor] }
+        .distinct()
+        .take(8)
+    if (colors.isEmpty()) return
+    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        colors.forEach { color ->
+            Box(
+                modifier = Modifier
+                    .size(10.dp)
+                    .background(color, CircleShape)
+            )
         }
     }
 }
@@ -282,8 +424,8 @@ fun TaskCard(task: Task, onClick: () -> Unit) {
                         overflow = TextOverflow.Ellipsis
                     )
                     if (!task.relatedTasks.isNullOrEmpty()) {
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("🔗", style = MaterialTheme.typography.bodySmall)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        RelationDots(task.relatedTasks)
                     }
                 }
                 task.description?.let { desc ->

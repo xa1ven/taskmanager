@@ -1,9 +1,11 @@
 package com.example.todolist.ui.tasks
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -14,9 +16,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.todolist.data.model.RelatedTaskResponse
 import com.example.todolist.data.model.Task
 import com.example.todolist.ui.theme.LocalPriorityColors
 import com.example.todolist.ui.theme.PriorityLow
+import com.example.todolist.ui.theme.RelationColors
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -260,7 +264,7 @@ private fun TaskInfoCard(task: Task, onMarkDone: () -> Unit) {
 
 @Composable
 private fun RelatedTasksSection(
-    relatedTasks: List<Task>,
+    relatedTasks: List<RelatedTaskResponse>,
     onTaskClick: (Int) -> Unit,
     onRemoveRelation: (Int) -> Unit,
     onAddRelation: () -> Unit
@@ -272,7 +276,7 @@ private fun RelatedTasksSection(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("🔗 Связанные задачи", style = MaterialTheme.typography.titleMedium)
+                Text("Связанные задачи", style = MaterialTheme.typography.titleMedium)
                 TextButton(onClick = onAddRelation) {
                     Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
@@ -297,6 +301,15 @@ private fun RelatedTasksSection(
                             .padding(vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        val dotColor = RelationColors.colorMap[related.groupColor]
+                        if (dotColor != null) {
+                            Box(
+                                modifier = Modifier
+                                    .size(10.dp)
+                                    .background(dotColor, CircleShape)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                        }
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = related.title,
@@ -307,7 +320,8 @@ private fun RelatedTasksSection(
                             Text(
                                 text = if (related.isDone) "Выполнена" else "Не выполнена",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = if (related.isDone) PriorityLow else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                color = if (related.isDone) PriorityLow
+                                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                             )
                         }
                         IconButton(

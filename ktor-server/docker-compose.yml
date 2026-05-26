@@ -1,0 +1,38 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: taskmanager_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: taskmanager
+      POSTGRES_USER: taskuser
+      POSTGRES_PASSWORD: taskpass123
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+
+  adminer:
+    image: adminer:latest
+    container_name: taskmanager_adminer
+    restart: unless-stopped
+    ports:
+      - "8888:8080"
+
+  ktor:
+    image: ktor-app:latest
+    container_name: taskmanager_ktor
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/taskmanager
+      DB_USER: taskuser
+      DB_PASSWORD: taskpass123
+      JWT_SECRET: super_secret_key_change_me
+    ports:
+      - "8000:8000"
+
+volumes:
+  postgres_data:

@@ -181,32 +181,38 @@ fun Route.taskRoutes() {
                 return@post
             }
 
+            val usedColors = transaction {
+                TaskRelations
+                    .slice(TaskRelations.groupColor)
+                    .selectAll()
+                    .map { it[TaskRelations.groupColor] }
+                    .toSet()
+            }
+            println("DEBUG usedColors: $usedColors")
+            val groupColor = RELATION_COLOR_PALETTE.firstOrNull { it !in usedColors } ?: "BLUE"
+            println("DEBUG chosen groupColor: $groupColor")
+
             val result = transaction {
                 val task = Tasks.select { Tasks.id eq taskId }.singleOrNull()
                     ?: return@transaction "task_not_found"
-
                 if (task[Tasks.userId] != userId) return@transaction "forbidden"
-
                 val relatedTask = Tasks.select { Tasks.id eq relatedId }.singleOrNull()
                     ?: return@transaction "related_not_found"
-
                 if (relatedTask[Tasks.userId] != userId) return@transaction "related_forbidden"
-
                 val exists = TaskRelations.select {
                     (TaskRelations.taskId eq taskId) and (TaskRelations.relatedTaskId eq relatedId)
                 }.count() > 0
-
                 if (exists) return@transaction "conflict"
-
                 TaskRelations.insert {
                     it[TaskRelations.taskId] = taskId
                     it[TaskRelations.relatedTaskId] = relatedId
+                    it[TaskRelations.groupColor] = groupColor
                 }
                 TaskRelations.insert {
                     it[TaskRelations.taskId] = relatedId
                     it[TaskRelations.relatedTaskId] = taskId
+                    it[TaskRelations.groupColor] = groupColor
                 }
-
                 "ok"
             }
 
@@ -253,19 +259,18 @@ fun Route.taskRoutes() {
 }
 
 private fun loadRelatedTasks(taskId: Int): List<RelatedTaskResponse> {
-    val relatedIds = TaskRelations
+    return TaskRelations
         .select { TaskRelations.taskId eq taskId }
-        .map { it[TaskRelations.relatedTaskId] }
+        .map { rel ->
+            val related = Tasks
+                .select { Tasks.id eq rel[TaskRelations.relatedTaskId] }
+                .single()
 
-    if (relatedIds.isEmpty()) return emptyList()
-
-    return Tasks
-        .select { Tasks.id inList relatedIds }
-        .map { row ->
             RelatedTaskResponse(
-                id = row[Tasks.id],
-                title = row[Tasks.title],
-                isDone = row[Tasks.isDone]
+                id = related[Tasks.id],
+                title = related[Tasks.title],
+                isDone = related[Tasks.isDone],
+                groupColor = rel[TaskRelations.groupColor]
             )
         }
 }

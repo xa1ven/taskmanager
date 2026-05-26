@@ -9,7 +9,15 @@ data class Task(
     val priority: String,
     val deadline: String?,
     @SerializedName("isDone") val isDone: Boolean,
-    val relatedTasks: List<Task>? = null
+    val createdAt: String? = null,
+    val relatedTasks: List<RelatedTaskResponse>? = null
+)
+
+data class RelatedTaskResponse(
+    val id: Int,
+    val title: String,
+    @SerializedName("isDone") val isDone: Boolean,
+    val groupColor: String? = null
 )
 
 data class TaskRequest(

@@ -9,7 +9,20 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 import javax.inject.Inject
+
+data class SortFilterState(
+    val sortOption: SortOption = SortOption.DATE_DESC,
+    val onlyToday: Boolean = false,
+    val onlyUrgent: Boolean = false
+)
+
+enum class SortOption {
+    DATE_DESC, DATE_ASC,
+    PRIORITY_DESC, PRIORITY_ASC,
+    DEADLINE_ASC, DEADLINE_DESC
+}
 
 data class TaskListUiState(
     val tasks: List<Task> = emptyList(),
@@ -19,7 +32,8 @@ data class TaskListUiState(
     val error: String? = null,
     val searchQuery: String = "",
     val searchHistory: List<String> = emptyList(),
-    val isSearchFocused: Boolean = false
+    val isSearchFocused: Boolean = false,
+    val sortFilterState: SortFilterState = SortFilterState()
 )
 
 @HiltViewModel
@@ -32,6 +46,7 @@ class TaskListViewModel @Inject constructor(
     val uiState: StateFlow<TaskListUiState> = _uiState.asStateFlow()
 
     private val searchQueryFlow = MutableStateFlow("")
+    private var rawTasks: List<Task> = emptyList()
 
     init {
         loadTasks()
@@ -66,7 +81,10 @@ class TaskListViewModel @Inject constructor(
             val result = taskRepository.getTasks(query)
             result.fold(
                 onSuccess = { tasks ->
-                    _uiState.update { it.copy(tasks = tasks.filter { t -> !t.isDone }, isLoading = false) }
+                    rawTasks = tasks.filter { !it.isDone }
+                    _uiState.update { state ->
+                        state.copy(tasks = applySort(rawTasks, state.sortFilterState), isLoading = false)
+                    }
                 },
                 onFailure = { e ->
                     _uiState.update { it.copy(error = e.message, isLoading = false) }
@@ -82,7 +100,10 @@ class TaskListViewModel @Inject constructor(
             val result = taskRepository.getTasks(query)
             result.fold(
                 onSuccess = { tasks ->
-                    _uiState.update { it.copy(tasks = tasks.filter { t -> !t.isDone }, isRefreshing = false) }
+                    rawTasks = tasks.filter { !it.isDone }
+                    _uiState.update { state ->
+                        state.copy(tasks = applySort(rawTasks, state.sortFilterState), isRefreshing = false)
+                    }
                 },
                 onFailure = { e ->
                     _uiState.update { it.copy(error = e.message, isRefreshing = false) }
@@ -95,9 +116,40 @@ class TaskListViewModel @Inject constructor(
         viewModelScope.launch {
             val result = taskRepository.markDone(taskId)
             if (result.isSuccess) {
+                rawTasks = rawTasks.filter { it.id != taskId }
                 _uiState.update { it.copy(tasks = it.tasks.filter { t -> t.id != taskId }) }
             }
         }
+    }
+
+    fun applySortFilter(state: SortFilterState) {
+        _uiState.update { it.copy(sortFilterState = state, tasks = applySort(rawTasks, state)) }
+    }
+
+    private fun applySort(tasks: List<Task>, state: SortFilterState): List<Task> {
+        var result = tasks
+        if (state.onlyToday) {
+            val today = LocalDate.now().toString()
+            result = result.filter { it.deadline?.take(10) == today }
+        }
+        if (state.onlyUrgent) {
+            result = result.filter { it.priority == "HIGH" }
+        }
+        result = when (state.sortOption) {
+            SortOption.DATE_DESC -> result.sortedByDescending { it.id }
+            SortOption.DATE_ASC -> result.sortedBy { it.id }
+            SortOption.PRIORITY_DESC -> result.sortedBy { priorityOrder(it.priority) }
+            SortOption.PRIORITY_ASC -> result.sortedByDescending { priorityOrder(it.priority) }
+            SortOption.DEADLINE_ASC -> result.sortedBy { it.deadline ?: "9999-99-99" }
+            SortOption.DEADLINE_DESC -> result.sortedByDescending { it.deadline ?: "0000-00-00" }
+        }
+        return result
+    }
+
+    private fun priorityOrder(priority: String) = when (priority) {
+        "HIGH" -> 0
+        "MEDIUM" -> 1
+        else -> 2
     }
 
     private fun performSearch(query: String) {
@@ -106,8 +158,9 @@ class TaskListViewModel @Inject constructor(
             val result = taskRepository.getTasks(query.takeIf { it.isNotBlank() })
             result.fold(
                 onSuccess = { tasks ->
-                    _uiState.update {
-                        it.copy(tasks = tasks.filter { t -> !t.isDone }, isSearchLoading = false)
+                    rawTasks = tasks.filter { !it.isDone }
+                    _uiState.update { state ->
+                        state.copy(tasks = applySort(rawTasks, state.sortFilterState), isSearchLoading = false)
                     }
                 },
                 onFailure = { e ->
