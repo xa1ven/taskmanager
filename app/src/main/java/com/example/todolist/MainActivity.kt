@@ -8,7 +8,11 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -65,10 +69,15 @@ class MainActivity : ComponentActivity() {
                 fontScaleIndex = uiState.fontScaleIndex,
                 accentScheme = uiState.accentScheme
             ) {
-                AppNavGraph(
-                    navController = navController,
-                    startDestination = startDestination
-                )
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    AppNavGraph(
+                        navController = navController,
+                        startDestination = startDestination
+                    )
+                }
             }
         }
     }
