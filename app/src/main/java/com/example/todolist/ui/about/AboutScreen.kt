@@ -64,7 +64,7 @@ fun AboutScreen(onOpenDrawer: () -> Unit) {
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "Версия 0.1.1",
+                text = "Версия 0.1.2",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
             )
