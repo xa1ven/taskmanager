@@ -176,7 +176,12 @@ fun TaskListScreen(
                                             placementSpec = tween(350)
                                         )
                                     ) {
-                                        TaskCard(task = task, onClick = { onTaskClick(task.id) })
+                                        TaskCard(task = task, onClick = {
+                                            if (uiState.searchQuery.isNotBlank()) {
+                                                viewModel.submitSearch(uiState.searchQuery)
+                                            }
+                                            onTaskClick(task.id)
+                                        })
                                     }
                                 }
                             }
