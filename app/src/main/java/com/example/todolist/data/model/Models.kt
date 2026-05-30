@@ -37,3 +37,5 @@ data class RegisterRequest(val login: String, val password: String)
 data class RelationRequest(val relatedTaskId: Int)
 
 data class ChangePasswordRequest(val currentPassword: String, val newPassword: String)
+
+data class TasksData(val tasks: List<Task>, val isFromCache: Boolean = false)

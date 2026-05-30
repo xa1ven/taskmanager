@@ -46,11 +46,21 @@ fun TaskListScreen(
     val focusManager = LocalFocusManager.current
     var showSortSheet by remember { mutableStateOf(false) }
     val isFiltersActive = uiState.sortFilterState != SortFilterState()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(shouldRefresh) {
         if (shouldRefresh) {
             viewModel.loadTasks()
             onRefreshHandled()
+        }
+    }
+
+    LaunchedEffect(uiState.isOffline) {
+        if (uiState.isOffline) {
+            snackbarHostState.showSnackbar(
+                message = "Сервер недоступен, данные могут быть устаревшими",
+                duration = SnackbarDuration.Long
+            )
         }
     }
 
@@ -91,7 +101,8 @@ fun TaskListScreen(
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Добавить задачу")
             }
-        }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
         Column(
             modifier = Modifier

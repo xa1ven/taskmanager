@@ -25,7 +25,7 @@ class MorningNotificationWorker @AssistedInject constructor(
 
     override suspend fun doWork(): Result {
         val result = taskRepository.getTasks()
-        val tasks = result.getOrNull() ?: return Result.success()
+        val tasks = result.getOrNull()?.tasks ?: return Result.success()
         val today = LocalDate.now().toString()
         val todayTasks = tasks.filter { !it.isDone && it.deadline?.startsWith(today) == true }
 

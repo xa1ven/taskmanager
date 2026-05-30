@@ -32,6 +32,7 @@ dependencies {
     implementation("com.zaxxer:HikariCP:5.1.0")
     implementation("org.mindrot:jbcrypt:0.4")
     implementation("ch.qos.logback:logback-classic:1.4.14")
+    implementation("io.ktor:ktor-server-call-logging:2.3.8")
 }
 
 kotlin {

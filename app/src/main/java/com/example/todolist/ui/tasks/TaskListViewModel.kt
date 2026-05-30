@@ -33,7 +33,8 @@ data class TaskListUiState(
     val searchQuery: String = "",
     val searchHistory: List<String> = emptyList(),
     val isSearchFocused: Boolean = false,
-    val sortFilterState: SortFilterState = SortFilterState()
+    val sortFilterState: SortFilterState = SortFilterState(),
+    val isOffline: Boolean = false
 )
 
 @HiltViewModel
@@ -80,10 +81,14 @@ class TaskListViewModel @Inject constructor(
             val query = _uiState.value.searchQuery.takeIf { it.isNotBlank() }
             val result = taskRepository.getTasks(query)
             result.fold(
-                onSuccess = { tasks ->
-                    rawTasks = tasks.filter { !it.isDone }
+                onSuccess = { data ->
+                    rawTasks = data.tasks.filter { !it.isDone }
                     _uiState.update { state ->
-                        state.copy(tasks = applySort(rawTasks, state.sortFilterState), isLoading = false)
+                        state.copy(
+                            tasks = applySort(rawTasks, state.sortFilterState),
+                            isLoading = false,
+                            isOffline = data.isFromCache
+                        )
                     }
                 },
                 onFailure = { e ->
@@ -99,10 +104,14 @@ class TaskListViewModel @Inject constructor(
             val query = _uiState.value.searchQuery.takeIf { it.isNotBlank() }
             val result = taskRepository.getTasks(query)
             result.fold(
-                onSuccess = { tasks ->
-                    rawTasks = tasks.filter { !it.isDone }
+                onSuccess = { data ->
+                    rawTasks = data.tasks.filter { !it.isDone }
                     _uiState.update { state ->
-                        state.copy(tasks = applySort(rawTasks, state.sortFilterState), isRefreshing = false)
+                        state.copy(
+                            tasks = applySort(rawTasks, state.sortFilterState),
+                            isRefreshing = false,
+                            isOffline = data.isFromCache
+                        )
                     }
                 },
                 onFailure = { e ->
@@ -157,10 +166,14 @@ class TaskListViewModel @Inject constructor(
             _uiState.update { it.copy(isSearchLoading = true, error = null) }
             val result = taskRepository.getTasks(query.takeIf { it.isNotBlank() })
             result.fold(
-                onSuccess = { tasks ->
-                    rawTasks = tasks.filter { !it.isDone }
+                onSuccess = { data ->
+                    rawTasks = data.tasks.filter { !it.isDone }
                     _uiState.update { state ->
-                        state.copy(tasks = applySort(rawTasks, state.sortFilterState), isSearchLoading = false)
+                        state.copy(
+                            tasks = applySort(rawTasks, state.sortFilterState),
+                            isSearchLoading = false,
+                            isOffline = data.isFromCache
+                        )
                     }
                 },
                 onFailure = { e ->

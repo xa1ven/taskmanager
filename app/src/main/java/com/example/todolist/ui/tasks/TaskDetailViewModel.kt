@@ -50,7 +50,8 @@ class TaskDetailViewModel @Inject constructor(
     private suspend fun fetchTask() {
         val result = taskRepository.getTasks()
         result.fold(
-            onSuccess = { tasks ->
+            onSuccess = { data ->
+                val tasks = data.tasks
                 val task = tasks.find { it.id == currentTaskId }
                 _uiState.update { it.copy(task = task, allTasks = tasks, isLoading = false, isUpdating = false) }
             },

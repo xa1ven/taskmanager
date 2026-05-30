@@ -42,8 +42,8 @@ class AddEditTaskViewModel @Inject constructor(
             _uiState.update { it.copy(isLoadingTask = true) }
             val result = taskRepository.getTasks()
             result.fold(
-                onSuccess = { tasks ->
-                    val task = tasks.find { it.id == taskId }
+                onSuccess = { data ->
+                    val task = data.tasks.find { it.id == taskId }
                     if (task != null) {
                         _uiState.update {
                             it.copy(

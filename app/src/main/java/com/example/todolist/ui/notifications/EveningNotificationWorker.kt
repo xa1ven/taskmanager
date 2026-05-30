@@ -23,7 +23,7 @@ class EveningNotificationWorker @AssistedInject constructor(
 
     override suspend fun doWork(): Result {
         val result = taskRepository.getTasks()
-        val tasks = result.getOrNull() ?: return Result.success()
+        val tasks = result.getOrNull()?.tasks ?: return Result.success()
         val pending = tasks.filter { !it.isDone }
 
         val (title, text) = if (pending.isEmpty()) {

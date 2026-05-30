@@ -9,12 +9,17 @@ import io.ktor.server.netty.*
 import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.response.*
 import io.ktor.server.plugins.cors.routing.*
+import io.ktor.server.plugins.callloging.*
+import org.slf4j.event.Level
 
 fun main() {
     embeddedServer(Netty, port = 8000, host = "0.0.0.0", module = Application::module).start(wait = true)
 }
 
 fun Application.module() {
+    install(CallLogging) {
+        level = Level.INFO
+    }
     configureDatabase()
     configureSerialization()
     configureSecurity()

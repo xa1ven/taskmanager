@@ -79,6 +79,10 @@ dependencies {
     ksp(libs.hilt.androidx.compiler)
     implementation(libs.coil.compose)
 
+    implementation(libs.room.runtime)
+    implementation(libs.room.ktx)
+    ksp(libs.room.compiler)
+
     coreLibraryDesugaring(libs.desugar.jdk.libs)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

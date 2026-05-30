@@ -33,7 +33,8 @@ class ArchiveViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true, error = null) }
             val result = taskRepository.getTasks()
             result.fold(
-                onSuccess = { tasks ->
+                onSuccess = { data ->
+                    val tasks = data.tasks
                     _uiState.update { it.copy(tasks = tasks.filter { t -> t.isDone }, isLoading = false) }
                 },
                 onFailure = { e ->
@@ -48,7 +49,8 @@ class ArchiveViewModel @Inject constructor(
             _uiState.update { it.copy(isRefreshing = true, error = null) }
             val result = taskRepository.getTasks()
             result.fold(
-                onSuccess = { tasks ->
+                onSuccess = { data ->
+                    val tasks = data.tasks
                     _uiState.update { it.copy(tasks = tasks.filter { t -> t.isDone }, isRefreshing = false) }
                 },
                 onFailure = { e ->
